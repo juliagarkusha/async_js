@@ -1,83 +1,64 @@
-// randomDelayPrint
+//fibonacci
 
-function randomDelayPrint(message) {
-    const delayPrint = (index) => {
-        if (index < message.length) {
-            const randomDelay = Math.random() * 1000;
-            setTimeout(() => {
-                console.log(message[index]);
-                delayPrint(index + 1);
-            }, randomDelay);
-        }
-    };
+function* fibonacci(n) {
+    let current = 0;
+    let next = 1;
+    let count = 0;
 
-    delayPrint(0);
+    while (count < n) {
+        yield current;
+        [current, next] = [next, current + next];
+        count++;
+    }
 }
 
-randomDelayPrint("Hello world");
+const fibGen = fibonacci(10);
+console.log(fibGen.next().value);
+console.log(fibGen.next().value);
+console.log(fibGen.next().value);
+console.log(fibGen.next().value);
+console.log(fibGen.next().value);
+console.log(fibGen.next().value);
 
-// debounce
+//flatten
 
-const debounce = (callback, delay) => {
-    let interval;
-
-    return (...args) => {
-        clearTimeout(interval);
-
-        interval = setTimeout(() => {
-            callback(...args);
-        }, delay);
-    };
-}
-
-const expensiveOperation = () => console.log("Виконую складну операцію...");
-const debouncedExpensiveOperation = debounce(expensiveOperation, 1000);
-
-debouncedExpensiveOperation();
-debouncedExpensiveOperation();
-debouncedExpensiveOperation();
-
-//intervalRace
-
-const intervalRace = (functions, interval) => {
-    const results = [];
-    let index = 0;
-
-    function runFunction() {
-        if (index < functions.length) {
-            const result = functions[index]();
-            results.push(result);
-            index++;
-            setTimeout(runFunction, interval);
+function* flatten(arr) {
+    for (const item of arr) {
+        if (Array.isArray(item)) {
+            yield* flatten(item);
+        } else {
+            yield item;
         }
     }
-
-    runFunction();
-
-    return new Promise((resolve) => {
-        const checkCompletion = setInterval(() => {
-            if (index >= functions.length) {
-                clearInterval(checkCompletion);
-                resolve(results);
-            }
-        }, interval);
-    });
 }
 
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const nestedArr = [1, [2, 3], [4, 5, [6, 7]]];
+const flattenGen = flatten(nestedArr);
 
-const functions = [
-    () => "Функція 1",
-    () => "Функція 2",
-    async () => {
-        await delay(1000);
-        return "Функція 3";
-    },
-    () => "Функція 4",
+console.log([...flattenGen]);
+
+//asyncGenerator
+
+async function* asyncGenerator(promises) {
+    for (const promise of promises) {
+        try {
+            const result = await promise;
+            yield result;
+        } catch (error) {
+            yield error;
+        }
+    }
+}
+
+const promises = [
+    new Promise((resolve) => setTimeout(() => resolve(1), 1000)),
+    new Promise((resolve) => setTimeout(() => resolve(2), 500)),
+    new Promise((resolve, reject) => setTimeout(() => reject("Помилка"), 1500)),
 ];
 
-const interval = 1500;
+(async () => {
+    for await (const result of asyncGenerator(promises)) {
+        console.log(result);
+    }
+})();
 
-intervalRace(functions, interval).then((results) => {
-    console.log("Результати виконання функцій:", results);
-});
