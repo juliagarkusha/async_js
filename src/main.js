@@ -1,83 +1,73 @@
-// randomDelayPrint
+// sumArrayPromise
 
-function randomDelayPrint(message) {
-    const delayPrint = (index) => {
-        if (index < message.length) {
-            const randomDelay = Math.random() * 1000;
-            setTimeout(() => {
-                console.log(message[index]);
-                delayPrint(index + 1);
-            }, randomDelay);
-        }
-    };
-
-    delayPrint(0);
-}
-
-randomDelayPrint("Hello world");
-
-// debounce
-
-const debounce = (callback, delay) => {
-    let interval;
-
-    return (...args) => {
-        clearTimeout(interval);
-
-        interval = setTimeout(() => {
-            callback(...args);
-        }, delay);
-    };
-}
-
-const expensiveOperation = () => console.log("Виконую складну операцію...");
-const debouncedExpensiveOperation = debounce(expensiveOperation, 1000);
-
-debouncedExpensiveOperation();
-debouncedExpensiveOperation();
-debouncedExpensiveOperation();
-
-//intervalRace
-
-const intervalRace = (functions, interval) => {
-    const results = [];
-    let index = 0;
-
-    function runFunction() {
-        if (index < functions.length) {
-            const result = functions[index]();
-            results.push(result);
-            index++;
-            setTimeout(runFunction, interval);
-        }
-    }
-
-    runFunction();
-
+const sumArrayPromise = (numbers) => {
     return new Promise((resolve) => {
-        const checkCompletion = setInterval(() => {
-            if (index >= functions.length) {
-                clearInterval(checkCompletion);
-                resolve(results);
-            }
-        }, interval);
+        setTimeout(() => {
+            const sum = numbers.reduce((acc, current) => acc + current, 0);
+            resolve(sum);
+        }, 3000);
     });
 }
 
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+sumArrayPromise([1, 2, 3, 4, 5]).then(console.log);
 
-const functions = [
-    () => "Функція 1",
-    () => "Функція 2",
-    async () => {
-        await delay(1000);
-        return "Функція 3";
-    },
-    () => "Функція 4",
+// concurrentPromises
+
+const concurrentPromises = (promises, maxConcurrency) => {
+    return new Promise((resolve) => {
+        const results = [];
+        let currentIndex = 0;
+
+        function runNext() {
+            if (currentIndex >= promises.length) {
+                resolve(results);
+                return;
+            }
+
+            const currentPromise = promises[currentIndex];
+            currentIndex++;
+
+            Promise.resolve(currentPromise)
+              .then((result) => {
+                  results.push(result);
+              })
+              .finally(() => {
+                  runNext();
+              });
+        }
+
+        for (let i = 0; i < maxConcurrency; i++) {
+            runNext();
+        }
+    });
+}
+
+const promises = [
+    new Promise((resolve) => setTimeout(() => resolve('Promise 1'), 1000)),
+    new Promise((resolve) => setTimeout(() => resolve('Promise 2'), 500)),
+    new Promise((resolve) => setTimeout(() => resolve('Promise 3'), 800)),
 ];
 
-const interval = 1500;
+concurrentPromises(promises, 2).then(console.log);
 
-intervalRace(functions, interval).then((results) => {
-    console.log("Результати виконання функцій:", results);
-});
+// sequenceAsync
+
+const sequenceAsync = (asyncFunctions) => {
+    return asyncFunctions.reduce((chain, asyncFn) => {
+        return chain.then(async (result) => {
+            const nextResult = await asyncFn(result);
+            return nextResult;
+        });
+    }, Promise.resolve(undefined));
+}
+
+const asyncFn1 = (result) => new Promise((resolve) => setTimeout(() => resolve(result ? result * 2 : 1), 1000));
+const asyncFn2 = (result) => new Promise((resolve) => setTimeout(() => resolve(result ? result * 3 : 1), 1000));
+const asyncFn3 = (result) => new Promise((resolve) => setTimeout(() => resolve(result ? result * 4 : 1), 1000));
+
+const asyncFunctions = [asyncFn1, asyncFn2, asyncFn3];
+
+sequenceAsync(asyncFunctions)
+  .then((finalResult) => {
+      console.log("Final Result:", finalResult);
+  });
